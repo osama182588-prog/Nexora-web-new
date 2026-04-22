@@ -11,6 +11,7 @@ export const siteConfig = {
   github: "https://github.com/osama182588-prog/Nexora-web-new",
   nav: [
     { label: "Features", href: "#features" },
+    { label: "Marketplace", href: "/marketplace" },
     { label: "Showcase", href: "#showcase" },
     { label: "Pricing", href: "#pricing" },
     { label: "FAQ", href: "#faq" }

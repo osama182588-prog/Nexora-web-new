@@ -204,6 +204,36 @@ export const Icon = {
     <svg {...withSize(p)}>
       <path d="M18 6 6 18M6 6l12 12" />
     </svg>
+  ),
+  Star: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+    </svg>
+  ),
+  StarFilled: (p: IconProps) => (
+    <svg {...withSize(p)} fill="currentColor" stroke="currentColor">
+      <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+    </svg>
+  ),
+  Image: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  ),
+  Cart: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6" />
+      <circle cx="9" cy="20" r="1.5" />
+      <circle cx="18" cy="20" r="1.5" />
+    </svg>
+  ),
+  Eye: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   )
 };
 
