@@ -264,6 +264,11 @@ export const Icon = {
     <svg {...withSize(p)}>
       <path d="M14 5h5v5M19 5l-9 9M9 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" />
     </svg>
+  ),
+  Activity: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 12h4l2-7 4 14 2-7h6" />
+    </svg>
   )
 };
 

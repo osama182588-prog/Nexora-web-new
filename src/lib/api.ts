@@ -1,6 +1,12 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+// Pulling the logger here ensures the bus → audit-log subscription is
+// active for every API route that authenticates a user (which is most
+// of them). Cheap: only the first import does any real work.
+import { ensureBusSubscription } from "@/lib/system/logger";
+
+ensureBusSubscription();
 
 /**
  * Resolve the current authenticated user id, or return a 401 response
