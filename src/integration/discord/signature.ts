@@ -30,10 +30,10 @@ function loadKey(publicKeyHex: string) {
     Buffer.from("302a300506032b6570032100", "hex"),
     raw
   ]);
+  const base64 = der.toString("base64");
+  const wrapped = base64.match(/.{1,64}/g) ?? [base64];
   const pem =
-    "-----BEGIN PUBLIC KEY-----\n" +
-    der.toString("base64").match(/.{1,64}/g)!.join("\n") +
-    "\n-----END PUBLIC KEY-----\n";
+    "-----BEGIN PUBLIC KEY-----\n" + wrapped.join("\n") + "\n-----END PUBLIC KEY-----\n";
   cachedKey = createPublicKey({ key: pem, format: "pem" });
   cachedKeyHex = publicKeyHex;
   return cachedKey;
