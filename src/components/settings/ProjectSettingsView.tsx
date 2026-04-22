@@ -630,8 +630,10 @@ function RolesPanel({
           <div>
             <CardTitle className="!text-base">Add member</CardTitle>
             <CardDescription>
-              Add a teammate by their user id. They&apos;ll appear instantly
-              for everyone with access.
+              Add a teammate by their user identifier (e.g.{" "}
+              <span className="font-mono text-slate-300">discord:284…</span> or{" "}
+              <span className="font-mono text-slate-300">user_abc123</span>).
+              They&apos;ll appear instantly for everyone with access.
             </CardDescription>
           </div>
           <form

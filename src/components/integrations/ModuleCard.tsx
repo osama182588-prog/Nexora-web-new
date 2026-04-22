@@ -183,7 +183,8 @@ export function ModuleCard({
           className={cn(
             "relative h-6 w-11 shrink-0 rounded-full transition",
             enabled ? "bg-emerald-400/80" : "bg-white/10",
-            (busy || !canManage) && "opacity-60 cursor-not-allowed"
+            (busy || !canManage) && "opacity-60",
+            !canManage && "cursor-not-allowed"
           )}
         >
           <span
