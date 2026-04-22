@@ -51,9 +51,9 @@ export function Tooltip({ content, side = "top", children }: TooltipProps) {
       <span
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute z-50 whitespace-nowrap rounded-lg border border-white/10 bg-background/95 px-2.5 py-1.5 text-xs text-slate-200 shadow-glow-sm backdrop-blur transition-all duration-150",
+          "pointer-events-none absolute z-50 whitespace-nowrap rounded-lg border border-white/10 bg-background/95 px-2.5 py-1.5 text-xs text-slate-200 shadow-glow-sm backdrop-blur transition-opacity duration-150",
           sideStyles[side],
-          open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+          open ? "opacity-100" : "opacity-0"
         )}
       >
         {content}
