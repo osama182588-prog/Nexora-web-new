@@ -77,6 +77,11 @@ export const projectsApi = {
       handle<{ ok: true }>
     );
   },
+  get(id: string) {
+    return fetch(`/api/projects/${id}`, { cache: "no-store" }).then(
+      handle<{ project: ProjectDTO; activities: ActivityDTO[] }>
+    );
+  },
   stats() {
     return fetch(`/api/projects/stats`, { cache: "no-store" }).then(
       handle<ProjectStats>

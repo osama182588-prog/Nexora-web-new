@@ -269,6 +269,19 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </div>
               </div>
             )}
+
+            {product.projectId && (
+              <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-neon-purple/20 bg-neon-purple/5 px-3 py-2 text-xs text-slate-300">
+                <Icon.Link size={12} className="text-neon-purple" />
+                Built from a Nexora project by{" "}
+                <Link
+                  href={`/marketplace/u/${product.ownerUsername}`}
+                  className="font-medium text-white hover:text-neon-purple"
+                >
+                  {product.ownerName || product.ownerUsername}
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2">

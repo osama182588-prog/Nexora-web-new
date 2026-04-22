@@ -51,12 +51,27 @@ const config: Config = {
         "pulse-slow": {
           "0%, 100%": { opacity: "0.5" },
           "50%": { opacity: "1" }
+        },
+        "toast-in": {
+          "0%": { opacity: "0", transform: "translateY(8px) scale(0.98)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" }
+        },
+        "toast-progress": {
+          "0%": { transform: "scaleX(1)" },
+          "100%": { transform: "scaleX(0)" }
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" }
         }
       },
       animation: {
         "fade-in": "fade-in 0.4s ease-out both",
         shimmer: "shimmer 1.6s linear infinite",
-        "pulse-slow": "pulse-slow 4s ease-in-out infinite"
+        "pulse-slow": "pulse-slow 4s ease-in-out infinite",
+        "toast-in": "toast-in 0.25s ease-out both",
+        "toast-progress": "toast-progress linear forwards",
+        float: "float 8s ease-in-out infinite"
       }
     }
   },

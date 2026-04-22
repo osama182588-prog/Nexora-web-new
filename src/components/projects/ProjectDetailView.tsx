@@ -12,8 +12,11 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/icons";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { projectsApi } from "@/lib/client-api";
+import { marketplaceApi } from "@/lib/marketplace-api";
 import type { ProjectDTO } from "@/lib/projects";
+import type { ProductDTO } from "@/lib/marketplace";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +43,10 @@ const colorChip: Record<ProjectDTO["color"], string> = {
 
 export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [project, setProject] = useState<ProjectDTO | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [linkedProduct, setLinkedProduct] = useState<ProductDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -86,6 +91,23 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
     };
   }, [projectId]);
 
+  // Load the linked marketplace product (if any) so we can deep-link to it.
+  useEffect(() => {
+    const linked = project?.marketplace.productId;
+    if (!linked) {
+      setLinkedProduct(null);
+      return;
+    }
+    let cancelled = false;
+    marketplaceApi
+      .get(linked)
+      .then((data) => !cancelled && setLinkedProduct(data.product))
+      .catch(() => !cancelled && setLinkedProduct(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.marketplace.productId]);
+
   const onSave = async () => {
     if (!project) return;
     setSaving(true);
@@ -111,8 +133,15 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
         const data = (await res.json()) as { activities: ActivityItem[] };
         setActivities(data.activities);
       }
+      toast({
+        title: "Project saved",
+        description: `Updated "${updated.name}".`,
+        variant: "success"
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save changes.");
+      const msg = e instanceof Error ? e.message : "Could not save changes.";
+      setError(msg);
+      toast({ title: "Save failed", description: msg, variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -123,10 +152,17 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
     setDeleting(true);
     try {
       await projectsApi.remove(project.id);
+      toast({
+        title: "Project deleted",
+        description: `"${project.name}" was permanently removed.`,
+        variant: "info"
+      });
       router.push("/dashboard/projects");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not delete project.");
+      const msg = e instanceof Error ? e.message : "Could not delete project.";
+      setError(msg);
+      toast({ title: "Delete failed", description: msg, variant: "error" });
       setDeleting(false);
     }
   };
@@ -348,12 +384,97 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
           </Card>
         </div>
 
-        {/* Activity */}
-        <Card variant="glass" className="self-start">
-          <CardTitle>Activity</CardTitle>
-          <CardDescription>The latest events on this project.</CardDescription>
-          <ActivityList items={activities} empty="No activity yet." />
-        </Card>
+        {/* Right column: marketplace integration + activity */}
+        <div className="space-y-6 self-start">
+          <Card variant="glass" className="relative overflow-hidden">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-neon-purple/15 blur-3xl"
+            />
+            <div className="flex items-start gap-2">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-neon-purple/15 text-neon-purple ring-1 ring-neon-purple/30">
+                <Icon.Cart size={16} />
+              </span>
+              <div className="min-w-0">
+                <CardTitle>Marketplace</CardTitle>
+                <CardDescription>
+                  {linkedProduct
+                    ? "This project is linked to a marketplace listing."
+                    : "Turn this project into a marketplace listing in one click."}
+                </CardDescription>
+              </div>
+            </div>
+
+            {linkedProduct ? (
+              <div className="relative mt-4 space-y-3">
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <span
+                    className={cn(
+                      "grid h-9 w-9 place-items-center rounded-lg ring-1",
+                      linkedProduct.status === "published"
+                        ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30"
+                        : "bg-amber-400/10 text-amber-300 ring-amber-400/30"
+                    )}
+                  >
+                    <Icon.Tag size={16} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">
+                      {linkedProduct.title}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wider text-slate-500">
+                      {linkedProduct.status} · {linkedProduct.views} views
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {linkedProduct.status === "published" && (
+                    <Link
+                      href={`/marketplace/${linkedProduct.slug}`}
+                      target="_blank"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+                    >
+                      <Icon.External size={14} />
+                      View listing
+                    </Link>
+                  )}
+                  <Link
+                    href={`/dashboard/marketplace/${linkedProduct.id}/edit`}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+                  >
+                    <Icon.Edit size={14} />
+                    Edit listing
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="relative mt-4">
+                <Link
+                  href={`/dashboard/marketplace/new?fromProject=${project.id}`}
+                  className="group inline-flex h-10 items-center gap-2 rounded-xl bg-neon-gradient px-4 text-sm font-medium text-white shadow-glow-sm transition hover:brightness-110"
+                >
+                  <Icon.Rocket size={16} />
+                  Publish as product
+                  <Icon.Arrow
+                    size={14}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+                <p className="mt-2 text-xs text-slate-500">
+                  We&apos;ll pre-fill the listing with this project&apos;s name,
+                  description, tags and accent.
+                </p>
+              </div>
+            )}
+          </Card>
+
+          {/* Activity */}
+          <Card variant="glass">
+            <CardTitle>Activity</CardTitle>
+            <CardDescription>The latest events on this project.</CardDescription>
+            <ActivityList items={activities} empty="No activity yet." />
+          </Card>
+        </div>
       </div>
 
       <ConfirmDialog

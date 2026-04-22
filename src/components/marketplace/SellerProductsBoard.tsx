@@ -13,6 +13,7 @@ import { Rating } from "@/components/ui/Rating";
 import { Button } from "@/components/ui/Button";
 import { marketplaceApi } from "@/lib/marketplace-api";
 import { formatPrice, type ProductDTO } from "@/lib/marketplace";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 const productStatusStyles = {
@@ -59,6 +60,7 @@ function ProductStatusBadge({
 type StatusFilter = "all" | "draft" | "published" | "archived";
 
 export function SellerProductsBoard() {
+  const { toast } = useToast();
   const [items, setItems] = useState<ProductDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -99,8 +101,17 @@ export function SellerProductsBoard() {
       setItems((cur) =>
         cur ? cur.map((it) => (it.id === product.id ? product : it)) : cur
       );
+      toast({
+        title: next === "published" ? "Product published" : "Product unpublished",
+        description: `"${product.title}" is now ${
+          next === "published" ? "live" : "hidden from the marketplace"
+        }.`,
+        variant: next === "published" ? "success" : "info"
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update product.");
+      const msg = e instanceof Error ? e.message : "Could not update product.";
+      setError(msg);
+      toast({ title: "Update failed", description: msg, variant: "error" });
     } finally {
       setBusy(null);
     }
@@ -109,12 +120,20 @@ export function SellerProductsBoard() {
   const remove = async () => {
     if (!confirm) return;
     setBusy(confirm.id);
+    const removedTitle = confirm.title;
     try {
       await marketplaceApi.remove(confirm.id);
       setItems((cur) => (cur ? cur.filter((it) => it.id !== confirm.id) : cur));
       setConfirm(null);
+      toast({
+        title: "Product deleted",
+        description: `"${removedTitle}" was removed.`,
+        variant: "info"
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not delete product.");
+      const msg = e instanceof Error ? e.message : "Could not delete product.";
+      setError(msg);
+      toast({ title: "Delete failed", description: msg, variant: "error" });
     } finally {
       setBusy(null);
     }
@@ -336,10 +355,26 @@ export function SellerProductsBoard() {
                       label: "Copy public URL",
                       icon: <Icon.Copy size={14} />,
                       disabled: p.status !== "published",
-                      onSelect: () =>
-                        navigator.clipboard?.writeText(
-                          `${window.location.origin}/marketplace/${p.slug}`
-                        )
+                      onSelect: () => {
+                        const url = `${window.location.origin}/marketplace/${p.slug}`;
+                        navigator.clipboard
+                          ?.writeText(url)
+                          .then(() =>
+                            toast({
+                              title: "Link copied",
+                              description: url,
+                              variant: "success",
+                              duration: 3000
+                            })
+                          )
+                          .catch(() =>
+                            toast({
+                              title: "Copy failed",
+                              description: "Your browser blocked the clipboard.",
+                              variant: "error"
+                            })
+                          );
+                      }
                     },
                     {
                       label: "Delete",

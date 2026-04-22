@@ -1,4 +1,5 @@
 import type { Product } from "@/models/Product";
+import { slugify as slugifyShared } from "@/lib/slug";
 
 export const PRODUCT_CATEGORIES = [
   { value: "templates", label: "Templates", icon: "Folder" },
@@ -40,6 +41,7 @@ export interface ProductDTO {
   accentColor: AccentColor;
   status: ProductStatus;
   featured: boolean;
+  projectId: string | null;
   ratings: { count: number; sum: number; average: number };
   views: number;
   metadata: Record<string, unknown>;
@@ -68,6 +70,7 @@ export function serializeProduct(p: Product): ProductDTO {
     accentColor: (p.accentColor ?? "purple") as AccentColor,
     status: p.status as ProductStatus,
     featured: !!p.featured,
+    projectId: (p as { projectId?: string | null }).projectId ?? null,
     ratings: {
       count: p.ratings?.count ?? 0,
       sum: p.ratings?.sum ?? 0,
@@ -83,17 +86,35 @@ export function serializeProduct(p: Product): ProductDTO {
 
 /** URL-safe slug. Marketplace slugs must be unique across all sellers. */
 export function productSlugify(input: string): string {
-  return (
-    input
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 80) || "product"
-  );
+  return slugifyShared(input, { maxLength: 80, fallback: "product" });
+}
+
+/**
+ * Sanitise a user-supplied URL: only http(s) are accepted. Returns
+ * an empty string if invalid so callers can simply assign the result.
+ */
+export function sanitizeImageUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return "";
+}
+
+/** Map an array of unknown values into a clean list of safe image URLs. */
+export function sanitizeImageUrls(values: unknown, max = 6): string[] {
+  if (!Array.isArray(values)) return [];
+  return (values as unknown[])
+    .map((v) => sanitizeImageUrl(v))
+    .filter((s): s is string => Boolean(s))
+    .slice(0, max);
 }
 
 export function formatPrice(amount: number, currency: ProductDTO["currency"]): string {

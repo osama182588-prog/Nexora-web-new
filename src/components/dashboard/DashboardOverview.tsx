@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Icon } from "@/components/icons";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import {
   projectsApi,
   type ActivityDTO,
@@ -73,7 +74,7 @@ export function DashboardOverview({ greetingName }: OverviewProps) {
         <div className="flex items-center gap-2">
           <Badge variant="purple">
             <span className="h-1.5 w-1.5 animate-pulse-slow rounded-full bg-neon-purple" />
-            Phase 2 · Projects
+            Phase 4 · Integrated
           </Badge>
           <Link href="/dashboard/projects/new">
             <Button size="sm">
@@ -83,6 +84,8 @@ export function DashboardOverview({ greetingName }: OverviewProps) {
           </Link>
         </div>
       </div>
+
+      <OnboardingChecklist />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

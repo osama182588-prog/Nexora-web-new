@@ -2,8 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongoose";
 import { ProductModel } from "@/models/Product";
+import { ProjectModel } from "@/models/Project";
 import { apiError, requireUserId } from "@/lib/api";
-import { PRODUCT_CATEGORIES, serializeProduct } from "@/lib/marketplace";
+import {
+  PRODUCT_CATEGORIES,
+  sanitizeImageUrl,
+  sanitizeImageUrls,
+  serializeProduct
+} from "@/lib/marketplace";
 
 export const dynamic = "force-dynamic";
 
@@ -82,14 +88,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     product.price = Math.max(0, Math.min(100000, body.price));
   }
   if (typeof body.coverImage === "string") {
-    product.coverImage = body.coverImage.trim();
+    product.coverImage = sanitizeImageUrl(body.coverImage);
   }
   if (Array.isArray(body.gallery)) {
-    product.gallery = (body.gallery as unknown[])
-      .filter((u): u is string => typeof u === "string")
-      .map((u) => u.trim())
-      .filter(Boolean)
-      .slice(0, 6);
+    product.gallery = sanitizeImageUrls(body.gallery, 6);
   }
   if (Array.isArray(body.tags)) {
     product.tags = (body.tags as unknown[])
@@ -110,6 +112,26 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 
   await product.save();
 
+  // Keep the source project's marketplace state in sync.
+  const productAny = product as unknown as { projectId?: string | null };
+  if (productAny.projectId) {
+    await ProjectModel.updateOne(
+      { _id: productAny.projectId, ownerId: auth.userId },
+      {
+        $set: {
+          "marketplace.listed": product.status === "published",
+          "marketplace.visibility":
+            product.status === "published" ? "public" : "unlisted",
+          "marketplace.price": product.price,
+          "marketplace.productId": String(product._id),
+          lastActivityAt: new Date()
+        }
+      }
+    ).catch((err) =>
+      console.warn("[marketplace] failed to sync project state", err)
+    );
+  }
+
   return NextResponse.json({
     product: serializeProduct(product),
     previousStatus
@@ -125,6 +147,26 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const product = await loadOwned(auth.userId, id);
   if (!product) return apiError("Product not found.", 404, "not_found");
 
+  const linkedProjectId = (
+    product as unknown as { projectId?: string | null }
+  ).projectId;
+
   await product.deleteOne();
+
+  if (linkedProjectId) {
+    await ProjectModel.updateOne(
+      { _id: linkedProjectId, ownerId: auth.userId },
+      {
+        $set: {
+          "marketplace.listed": false,
+          "marketplace.visibility": "private",
+          "marketplace.productId": null
+        }
+      }
+    ).catch((err) =>
+      console.warn("[marketplace] failed to clear project link", err)
+    );
+  }
+
   return NextResponse.json({ ok: true });
 }

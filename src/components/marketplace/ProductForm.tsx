@@ -1,14 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/icons";
+import { useToast } from "@/components/ui/Toast";
 import { marketplaceApi } from "@/lib/marketplace-api";
+import { projectsApi } from "@/lib/client-api";
 import { PRODUCT_CATEGORIES, type ProductDTO } from "@/lib/marketplace";
+import type { ProjectDTO } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
 const COLORS = ["purple", "blue", "cyan", "emerald", "amber", "rose"] as const;
@@ -28,6 +31,8 @@ interface ProductFormProps {
 
 export function ProductForm({ product }: ProductFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const editing = !!product;
 
   const [title, setTitle] = useState(product?.title ?? "");
@@ -48,8 +53,51 @@ export function ProductForm({ product }: ProductFormProps) {
     product?.status === "published" ? "published" : "draft"
   );
 
+  const [linkedProject, setLinkedProject] = useState<ProjectDTO | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill from a source project when launched via "Publish as product".
+  // Only applies when creating (not editing).
+  const fromProjectId = !editing ? searchParams.get("fromProject") : null;
+  useEffect(() => {
+    if (!fromProjectId) return;
+    let cancelled = false;
+    fetch(`/api/projects/${fromProjectId}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+      .then((data: { project: ProjectDTO }) => {
+        if (cancelled) return;
+        const p = data.project;
+        setLinkedProject(p);
+        if (!title) setTitle(p.name);
+        if (!tagline && p.description) setTagline(p.description.slice(0, 160));
+        if (!description) setDescription(p.description);
+        if (!tagsInput && p.tags.length) setTagsInput(p.tags.join(", "));
+        setColor(p.color as (typeof COLORS)[number]);
+      })
+      .catch(() => {
+        /* silent */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromProjectId]);
+
+  // Show the linked project for an existing product too.
+  useEffect(() => {
+    if (!product?.projectId) return;
+    let cancelled = false;
+    projectsApi
+      .get(product.projectId)
+      .then((data) => !cancelled && setLinkedProject(data.project))
+      .catch(() => {
+        /* silent */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.projectId]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,7 +117,7 @@ export function ProductForm({ product }: ProductFormProps) {
         .map((s) => s.trim())
         .filter((s) => /^https?:\/\//i.test(s));
       const priceNum = Number(price);
-      const payload = {
+      const payload: Partial<ProductDTO> & { projectId?: string | null } = {
         title: title.trim(),
         tagline: tagline.trim(),
         description: description.trim(),
@@ -85,9 +133,33 @@ export function ProductForm({ product }: ProductFormProps) {
 
       if (editing && product) {
         await marketplaceApi.update(product.id, payload);
+        toast({
+          title: "Product saved",
+          description: `"${payload.title}" was updated.`,
+          variant: "success"
+        });
         router.push(`/dashboard/marketplace`);
       } else {
+        if (linkedProject) payload.projectId = linkedProject.id;
         const { product: created } = await marketplaceApi.create(payload);
+        toast({
+          title:
+            created.status === "published"
+              ? "Product published"
+              : "Draft saved",
+          description:
+            created.status === "published"
+              ? `"${created.title}" is now live on the marketplace.`
+              : `"${created.title}" is saved as a draft.`,
+          variant: "success",
+          action:
+            created.status === "published"
+              ? {
+                  label: "View",
+                  onClick: () => router.push(`/marketplace/${created.slug}`)
+                }
+              : undefined
+        });
         router.push(
           created.status === "published"
             ? `/marketplace/${created.slug}`
@@ -96,13 +168,30 @@ export function ProductForm({ product }: ProductFormProps) {
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save product.");
+      const msg = err instanceof Error ? err.message : "Could not save product.";
+      setError(msg);
+      toast({ title: "Save failed", description: msg, variant: "error" });
       setSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      {linkedProject && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-neon-purple/20 bg-neon-purple/5 px-4 py-3 text-sm text-slate-300">
+          <Icon.Link size={14} className="text-neon-purple" />
+          <span>
+            {editing ? "Linked to project" : "Pre-filled from project"}{" "}
+            <Link
+              href={`/dashboard/projects/${linkedProject.id}`}
+              className="font-medium text-white hover:text-neon-purple"
+            >
+              {linkedProject.name}
+            </Link>
+          </span>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-sm text-rose-300">
           {error}

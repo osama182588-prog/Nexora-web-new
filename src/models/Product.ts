@@ -50,6 +50,9 @@ const ProductSchema = new Schema(
     },
     featured: { type: Boolean, default: false, index: true },
 
+    /** Optional link back to the source project that spawned this listing. */
+    projectId: { type: String, default: null, index: true },
+
     /** Denormalised aggregate so cards render without a join. */
     ratings: {
       count: { type: Number, default: 0 },

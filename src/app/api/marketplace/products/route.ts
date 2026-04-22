@@ -1,10 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongoose";
 import { ProductModel } from "@/models/Product";
+import { ProjectModel } from "@/models/Project";
 import { apiError, requireUserId } from "@/lib/api";
 import {
   PRODUCT_CATEGORIES,
   productSlugify,
+  sanitizeImageUrl,
+  sanitizeImageUrls,
   serializeProduct
 } from "@/lib/marketplace";
 import { getServerSession } from "next-auth";
@@ -142,16 +146,24 @@ export async function POST(req: NextRequest) {
     ? (body.status as "draft" | "published")
     : "draft";
 
-  const coverImage = typeof body.coverImage === "string" ? body.coverImage.trim() : "";
-  const gallery = Array.isArray(body.gallery)
-    ? (body.gallery as unknown[])
-        .filter((u): u is string => typeof u === "string")
-        .map((u) => u.trim())
-        .filter(Boolean)
-        .slice(0, 6)
-    : [];
+  const coverImage = sanitizeImageUrl(body.coverImage);
+  const gallery = sanitizeImageUrls(body.gallery, 6);
 
   await connectToDatabase();
+
+  // Optional source-project link. Verified to belong to the caller.
+  let projectId: string | null = null;
+  const rawProjectId = body.projectId;
+  if (
+    typeof rawProjectId === "string" &&
+    mongoose.Types.ObjectId.isValid(rawProjectId)
+  ) {
+    const owned = await ProjectModel.exists({
+      _id: rawProjectId,
+      ownerId: auth.userId
+    });
+    if (owned) projectId = rawProjectId;
+  }
 
   // Generate a globally-unique slug.
   const baseSlug = productSlugify(title);
@@ -181,8 +193,27 @@ export async function POST(req: NextRequest) {
     coverImage,
     gallery,
     status,
+    projectId,
     publishedAt: status === "published" ? new Date() : null
   });
+
+  // Mirror state into the source project so dashboards show the link.
+  if (projectId) {
+    await ProjectModel.updateOne(
+      { _id: projectId, ownerId: auth.userId },
+      {
+        $set: {
+          "marketplace.listed": status === "published",
+          "marketplace.visibility": status === "published" ? "public" : "unlisted",
+          "marketplace.price": price,
+          "marketplace.productId": String(product._id),
+          lastActivityAt: new Date()
+        }
+      }
+    ).catch((err) =>
+      console.warn("[marketplace] failed to sync project state", err)
+    );
+  }
 
   return NextResponse.json({ product: serializeProduct(product) }, { status: 201 });
 }

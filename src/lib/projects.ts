@@ -1,4 +1,5 @@
 import type { Project } from "@/models/Project";
+import { slugify as slugifyShared } from "@/lib/slug";
 
 /** Shape returned by the API — `ObjectId` and `Date` serialized to strings. */
 export interface ProjectDTO {
@@ -17,6 +18,7 @@ export interface ProjectDTO {
     visibility: "private" | "unlisted" | "public";
     listed: boolean;
     price: number;
+    productId: string | null;
   };
   metadata: Record<string, unknown>;
   createdAt: string;
@@ -43,7 +45,10 @@ export function serializeProject(p: Project): ProjectDTO {
     marketplace: {
       visibility: p.marketplace?.visibility ?? "private",
       listed: p.marketplace?.listed ?? false,
-      price: p.marketplace?.price ?? 0
+      price: p.marketplace?.price ?? 0,
+      productId:
+        (p.marketplace as { productId?: string | null } | undefined)?.productId ??
+        null
     },
     metadata: (p.metadata as Record<string, unknown>) ?? {},
     createdAt: p.createdAt.toISOString(),
@@ -54,13 +59,5 @@ export function serializeProject(p: Project): ProjectDTO {
 
 /** Generate a URL-safe slug from a project name. */
 export function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 60) || "project";
+  return slugifyShared(input, { maxLength: 60, fallback: "project" });
 }

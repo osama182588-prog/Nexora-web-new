@@ -1,25 +1,53 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Badge } from "@/components/ui/Badge";
 
 export function Hero() {
+  // Subtle scroll-driven parallax for the ambient blobs.
+  const [scroll, setScroll] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (reduceMotion) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setScroll(window.scrollY));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <section className="relative overflow-hidden pt-36 pb-24 sm:pt-44">
       <div className="absolute inset-0 grid-bg" aria-hidden />
       <div
-        className="absolute left-1/2 top-20 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-neon-purple/20 blur-[140px]"
+        className="absolute left-1/2 top-20 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-neon-purple/20 blur-[140px] will-change-transform"
+        style={{ transform: `translate3d(-50%, ${scroll * 0.15}px, 0)` }}
         aria-hidden
       />
       <div
-        className="absolute right-1/4 top-60 h-[260px] w-[420px] rounded-full bg-neon-blue/20 blur-[120px]"
+        className="absolute right-1/4 top-60 h-[260px] w-[420px] rounded-full bg-neon-blue/20 blur-[120px] will-change-transform"
+        style={{ transform: `translate3d(0, ${scroll * -0.1}px, 0)` }}
         aria-hidden
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 text-center">
+      <div
+        className="relative mx-auto max-w-5xl px-4 text-center"
+        style={{ transform: `translate3d(0, ${scroll * 0.05}px, 0)` }}
+      >
         <div className="flex justify-center">
           <Badge variant="purple" className="animate-fade-in">
             <span className="h-1.5 w-1.5 animate-pulse-slow rounded-full bg-neon-purple" />
-            Phase 1 · Now in private beta
+            Phase 4 · Integrated SaaS platform
           </Badge>
         </div>
 
@@ -30,14 +58,14 @@ export function Hero() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl animate-fade-in text-base text-slate-300 sm:text-lg">
-          Nexora unifies your Discord community, automations, and analytics into
-          one futuristic command center. Sign in with Discord and ship in minutes.
+          Nexora unifies your projects, marketplace and community into one
+          futuristic command center. Sign in with Discord and ship in minutes.
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/login"
-            className="group inline-flex h-12 items-center gap-2 rounded-xl bg-neon-gradient px-6 text-sm font-medium text-white shadow-glow transition hover:brightness-110"
+            className="group inline-flex h-12 items-center gap-2 rounded-xl bg-neon-gradient px-6 text-sm font-medium text-white shadow-glow transition hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0"
           >
             <Icon.Discord size={18} />
             Continue with Discord
@@ -47,10 +75,11 @@ export function Hero() {
             />
           </Link>
           <Link
-            href="#features"
-            className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+            href="/marketplace"
+            className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10 hover:-translate-y-0.5 active:translate-y-0"
           >
-            Explore features
+            <Icon.Cart size={16} />
+            Explore marketplace
           </Link>
         </div>
 

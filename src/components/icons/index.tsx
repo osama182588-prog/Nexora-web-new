@@ -234,6 +234,36 @@ export const Icon = {
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
+  ),
+  Info: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v.01M11 12h1v5h1" />
+    </svg>
+  ),
+  Warning: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M10.3 3.7 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17v.01" />
+    </svg>
+  ),
+  Rocket: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M14 4s5 0 7 2c1 2 1 7-2 10l-4 4-4-1-1-4 4-4c3-3 8-3 10-2" />
+      <path d="M9 15l-3 3 3 1 1 3 3-3" />
+      <circle cx="15" cy="9" r="1.5" />
+    </svg>
+  ),
+  Link: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 1 0-5.66-5.66l-1 1" />
+      <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 1 0 5.66 5.66l1-1" />
+    </svg>
+  ),
+  External: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M14 5h5v5M19 5l-9 9M9 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" />
+    </svg>
   )
 };
 

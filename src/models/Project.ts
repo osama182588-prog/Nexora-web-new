@@ -55,6 +55,10 @@ const ProjectSchema = new Schema(
     /**
      * Reserved for Phase 3 (Marketplace). Kept on the model so listings
      * can be enabled per-project without a follow-up migration.
+     *
+     * Phase 4 wires the seller marketplace product back into the project
+     * via `productId` so we can display a "Listed in marketplace" badge
+     * and a "View listing" CTA in the project workspace.
      */
     marketplace: {
       visibility: {
@@ -63,7 +67,8 @@ const ProjectSchema = new Schema(
         default: "private"
       },
       listed: { type: Boolean, default: false },
-      price: { type: Number, default: 0, min: 0 }
+      price: { type: Number, default: 0, min: 0 },
+      productId: { type: String, default: null }
     },
 
     metadata: { type: Schema.Types.Mixed, default: {} },

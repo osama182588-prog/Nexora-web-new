@@ -1,5 +1,6 @@
 import { Card, CardDescription, CardTitle } from "@/components/ui/Card";
 import { Icon } from "@/components/icons";
+import { Reveal } from "@/components/ui/Reveal";
 import type { ReactNode } from "react";
 
 interface Feature {
@@ -65,14 +66,16 @@ export function Features() {
         </div>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <Card key={feature.title} variant="glass" interactive>
-              <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-neon-gradient/15 text-neon-purple ring-1 ring-neon-purple/30 shadow-glow-sm">
-                {feature.icon}
-              </div>
-              <CardTitle>{feature.title}</CardTitle>
-              <CardDescription>{feature.description}</CardDescription>
-            </Card>
+          {features.map((feature, i) => (
+            <Reveal key={feature.title} delay={i * 60} from="up">
+              <Card variant="glass" interactive>
+                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-neon-gradient/15 text-neon-purple ring-1 ring-neon-purple/30 shadow-glow-sm transition-transform duration-300 hover:scale-110 hover:rotate-3">
+                  {feature.icon}
+                </div>
+                <CardTitle>{feature.title}</CardTitle>
+                <CardDescription>{feature.description}</CardDescription>
+              </Card>
+            </Reveal>
           ))}
         </div>
       </div>
