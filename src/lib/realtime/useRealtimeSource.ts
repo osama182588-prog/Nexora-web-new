@@ -49,6 +49,15 @@ const TOPICS = [
   "product.deleted",
   "product.published",
   "product.unpublished",
+  "ticket.created",
+  "ticket.updated",
+  "ticket.status_changed",
+  "module.enabled",
+  "module.disabled",
+  "module.configured",
+  "external.discord.interaction",
+  "external.discord.delivered",
+  "external.discord.failed",
   "operator.heartbeat"
 ] as const;
 

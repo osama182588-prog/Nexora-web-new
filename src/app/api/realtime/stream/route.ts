@@ -17,6 +17,7 @@ import { type NextRequest } from "next/server";
 import { requireUserId } from "@/lib/api";
 import { bus, type SystemEvent } from "@/lib/system/bus";
 import { ensureOperator, operatorState } from "@/lib/system/operator";
+import { ensureExternalIntegration } from "@/modules";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
 
   // Make sure the operator (audit log subscriber) is wired up.
   ensureOperator();
+  // And the modules dispatcher (bus → external integration modules).
+  ensureExternalIntegration();
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
