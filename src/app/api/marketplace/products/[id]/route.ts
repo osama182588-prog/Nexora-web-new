@@ -10,6 +10,7 @@ import {
   sanitizeImageUrls,
   serializeProduct
 } from "@/lib/marketplace";
+import { publishProductEvent } from "@/lib/services/marketplace.service";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,28 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     );
   }
 
+  // Broadcast on the internal bus so the dashboard reflects the change
+  // in realtime and the operator records it in the audit log.
+  if (product.status !== previousStatus) {
+    publishProductEvent({
+      type:
+        product.status === "published"
+          ? "product.published"
+          : previousStatus === "published"
+            ? "product.unpublished"
+            : "product.updated",
+      ownerId: auth.userId,
+      product,
+      extra: { from: previousStatus, to: product.status }
+    });
+  } else {
+    publishProductEvent({
+      type: "product.updated",
+      ownerId: auth.userId,
+      product
+    });
+  }
+
   return NextResponse.json({
     product: serializeProduct(product),
     previousStatus
@@ -151,6 +174,9 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     product as unknown as { projectId?: string | null }
   ).projectId;
 
+  // Capture a serialised snapshot before deletion for the bus payload.
+  const snapshot = serializeProduct(product);
+
   await product.deleteOne();
 
   if (linkedProjectId) {
@@ -167,6 +193,12 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
       console.warn("[marketplace] failed to clear project link", err)
     );
   }
+
+  publishProductEvent({
+    type: "product.deleted",
+    ownerId: auth.userId,
+    product: snapshot
+  });
 
   return NextResponse.json({ ok: true });
 }

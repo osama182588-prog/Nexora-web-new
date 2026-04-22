@@ -18,6 +18,7 @@ import {
 } from "@/lib/client-api";
 import type { ProjectDTO } from "@/lib/projects";
 import { formatRelativeTime } from "@/lib/format";
+import { useRealtime } from "@/lib/realtime/RealtimeContext";
 import { cn } from "@/lib/utils";
 
 interface OverviewProps {
@@ -56,6 +57,49 @@ export function DashboardOverview({ greetingName }: OverviewProps) {
       cancelled = true;
     };
   }, []);
+
+  // Realtime sync — every project event from the internal bus updates
+  // the recent-projects card and prepends a synthesised activity entry
+  // so the feed feels alive between server reads.
+  const { lastEvent } = useRealtime();
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (!lastEvent.type.startsWith("project.")) return;
+    const project = (lastEvent.payload as { project?: ProjectDTO }).project;
+    if (!project) return;
+
+    setRecent((cur) => {
+      if (!cur) return cur;
+      switch (lastEvent.type) {
+        case "project.created":
+          return cur.some((p) => p.id === project.id)
+            ? cur
+            : [project, ...cur].slice(0, 5);
+        case "project.deleted":
+          return cur.filter((p) => p.id !== project.id);
+        default:
+          // For updates, replace in place and bubble to the top.
+          return [
+            project,
+            ...cur.filter((p) => p.id !== project.id)
+          ].slice(0, 5);
+      }
+    });
+
+    setActivity((cur) => {
+      const item: ActivityDTO = {
+        id: lastEvent.id,
+        type: lastEvent.type,
+        message: humanize(lastEvent.type, project.name),
+        createdAt: lastEvent.createdAt,
+        projectId: project.id
+      };
+      if (!cur) return [item];
+      // De-dupe by id (the bus id matches the SSE event id).
+      if (cur.some((a) => a.id === item.id)) return cur;
+      return [item, ...cur].slice(0, 8);
+    });
+  }, [lastEvent]);
 
   return (
     <div className="space-y-6">
@@ -251,6 +295,23 @@ function ActivityGlyph({ type }: { type: string }) {
   if (type === "project.status_changed") return <Icon.Bolt size={12} />;
   if (type === "project.progress_updated") return <Icon.Chart size={12} />;
   return <Icon.Edit size={12} />;
+}
+
+/** Build a friendly activity message from a bus event. */
+function humanize(type: string, name: string): string {
+  switch (type) {
+    case "project.created":
+      return `Created project "${name}"`;
+    case "project.deleted":
+      return `Deleted project "${name}"`;
+    case "project.status_changed":
+      return `Status changed on "${name}"`;
+    case "project.progress_updated":
+      return `Progress updated on "${name}"`;
+    case "project.updated":
+    default:
+      return `Updated "${name}"`;
+  }
 }
 
 interface StatCardProps {

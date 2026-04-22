@@ -4,6 +4,7 @@ import { ProjectModel } from "@/models/Project";
 import { ActivityModel } from "@/models/Activity";
 import { apiError, requireUserId } from "@/lib/api";
 import { serializeProject, slugify } from "@/lib/projects";
+import { publishProjectEvent } from "@/lib/services/projects.service";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +134,14 @@ export async function POST(req: NextRequest) {
     projectId: String(project._id),
     type: "project.created",
     message: `Created project "${project.name}"`
+  });
+
+  // Broadcast to the internal bus so any in-process subscriber (the
+  // operator audit log + every connected SSE client) sees it instantly.
+  publishProjectEvent({
+    type: "project.created",
+    ownerId: auth.userId,
+    project
   });
 
   return NextResponse.json({ project: serializeProject(project) }, { status: 201 });

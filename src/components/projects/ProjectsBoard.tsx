@@ -11,6 +11,7 @@ import { Icon } from "@/components/icons";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { projectsApi } from "@/lib/client-api";
 import type { ProjectDTO } from "@/lib/projects";
+import { useRealtime } from "@/lib/realtime/RealtimeContext";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS = ["all", "active", "paused", "completed", "archived"] as const;
@@ -72,6 +73,32 @@ export function ProjectsBoard() {
     );
   const handleDelete = (id: string) =>
     setProjects((prev) => (prev ? prev.filter((p) => p.id !== id) : prev));
+
+  // Realtime sync: react to internal bus events so every project board
+  // open in any tab stays consistent without polling. We only touch
+  // local state when the event refers to a project we already render
+  // (or a brand-new one that matches the current sort scope).
+  const { lastEvent } = useRealtime();
+  useEffect(() => {
+    if (!lastEvent) return;
+    const proj = (lastEvent.payload as { project?: ProjectDTO }).project;
+    if (!proj) return;
+    setProjects((prev) => {
+      if (!prev) return prev;
+      switch (lastEvent.type) {
+        case "project.created":
+          return prev.some((p) => p.id === proj.id) ? prev : [proj, ...prev];
+        case "project.updated":
+        case "project.status_changed":
+        case "project.progress_updated":
+          return prev.map((p) => (p.id === proj.id ? proj : p));
+        case "project.deleted":
+          return prev.filter((p) => p.id !== proj.id);
+        default:
+          return prev;
+      }
+    });
+  }, [lastEvent]);
 
   return (
     <div className="space-y-6">

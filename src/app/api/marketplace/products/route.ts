@@ -11,6 +11,7 @@ import {
   sanitizeImageUrls,
   serializeProduct
 } from "@/lib/marketplace";
+import { publishProductEvent } from "@/lib/services/marketplace.service";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -214,6 +215,12 @@ export async function POST(req: NextRequest) {
       console.warn("[marketplace] failed to sync project state", err)
     );
   }
+
+  publishProductEvent({
+    type: status === "published" ? "product.published" : "product.created",
+    ownerId: auth.userId,
+    product
+  });
 
   return NextResponse.json({ product: serializeProduct(product) }, { status: 201 });
 }

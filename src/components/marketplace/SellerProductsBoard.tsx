@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { marketplaceApi } from "@/lib/marketplace-api";
 import { formatPrice, type ProductDTO } from "@/lib/marketplace";
 import { useToast } from "@/components/ui/Toast";
+import { useRealtime } from "@/lib/realtime/RealtimeContext";
 import { cn } from "@/lib/utils";
 
 const productStatusStyles = {
@@ -78,6 +79,30 @@ export function SellerProductsBoard() {
   };
 
   useEffect(load, []);
+
+  // Realtime sync — keep the seller dashboard in lockstep with the
+  // internal bus so changes from anywhere in the system land instantly.
+  const { lastEvent } = useRealtime();
+  useEffect(() => {
+    if (!lastEvent) return;
+    const product = (lastEvent.payload as { product?: ProductDTO }).product;
+    if (!product) return;
+    setItems((cur) => {
+      if (!cur) return cur;
+      switch (lastEvent.type) {
+        case "product.created":
+          return cur.some((p) => p.id === product.id) ? cur : [product, ...cur];
+        case "product.updated":
+        case "product.published":
+        case "product.unpublished":
+          return cur.map((p) => (p.id === product.id ? product : p));
+        case "product.deleted":
+          return cur.filter((p) => p.id !== product.id);
+        default:
+          return cur;
+      }
+    });
+  }, [lastEvent]);
 
   const filtered = useMemo(() => {
     if (!items) return null;

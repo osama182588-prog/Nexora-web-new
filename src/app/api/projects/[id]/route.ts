@@ -5,6 +5,7 @@ import { ProjectModel } from "@/models/Project";
 import { ActivityModel } from "@/models/Activity";
 import { apiError, requireUserId } from "@/lib/api";
 import { serializeProject } from "@/lib/projects";
+import { publishProjectEvent } from "@/lib/services/projects.service";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,12 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       message: `Status changed from ${previousStatus} to ${project.status} on "${project.name}"`,
       metadata: { from: previousStatus, to: project.status }
     });
+    publishProjectEvent({
+      type: "project.status_changed",
+      ownerId: auth.userId,
+      project,
+      extra: { from: previousStatus, to: project.status }
+    });
   } else if (project.progress !== previousProgress) {
     await ActivityModel.create({
       ownerId: auth.userId,
@@ -131,12 +138,24 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       message: `Progress updated to ${project.progress}% on "${project.name}"`,
       metadata: { from: previousProgress, to: project.progress }
     });
+    publishProjectEvent({
+      type: "project.progress_updated",
+      ownerId: auth.userId,
+      project,
+      extra: { from: previousProgress, to: project.progress }
+    });
   } else if (changes.length > 0) {
     await ActivityModel.create({
       ownerId: auth.userId,
       projectId: String(project._id),
       type: "project.updated",
       message: `Updated ${changes.join(", ")} on "${project.name}"`
+    });
+    publishProjectEvent({
+      type: "project.updated",
+      ownerId: auth.userId,
+      project,
+      extra: { changes }
     });
   }
 
@@ -153,6 +172,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   if (!project) return apiError("Project not found.", 404, "not_found");
 
   const name = project.name;
+  const projectId = String(project._id);
   await project.deleteOne();
 
   await ActivityModel.create({
@@ -160,6 +180,13 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     projectId: null,
     type: "project.deleted",
     message: `Deleted project "${name}"`
+  });
+
+  publishProjectEvent({
+    type: "project.deleted",
+    ownerId: auth.userId,
+    project: serializeProject(project),
+    extra: { id: projectId, name }
   });
 
   return NextResponse.json({ ok: true });

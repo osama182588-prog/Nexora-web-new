@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { RealtimeStatusPill } from "@/components/realtime/RealtimeStatusPill";
 import { cn } from "@/lib/utils";
 
 function Avatar({
@@ -77,6 +78,8 @@ export function Topbar() {
             ⌘K
           </kbd>
         </div>
+
+        <RealtimeStatusPill />
 
         <button
           type="button"
