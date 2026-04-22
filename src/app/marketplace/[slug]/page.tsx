@@ -40,9 +40,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
   });
   if (!doc) notFound();
 
-  // Increment view counter (best-effort).
+  // Increment view counter (best-effort; log failures for diagnostics).
   ProductModel.updateOne({ _id: doc._id }, { $inc: { views: 1 } }).catch(
-    () => undefined
+    (err) => {
+      console.warn("[marketplace] failed to increment view counter", err);
+    }
   );
 
   const product = serializeProduct(doc);
