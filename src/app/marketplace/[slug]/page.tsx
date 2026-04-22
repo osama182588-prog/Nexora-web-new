@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { connectToDatabase } from "@/lib/mongoose";
 import { ProductModel } from "@/models/Product";
-import { serializeProduct, formatPrice, type ProductDTO } from "@/lib/marketplace";
+import { serializeProduct, ACCENT_GRADIENT_STRONG, formatPrice } from "@/lib/marketplace";
 import { Icon } from "@/components/icons";
 import { Rating } from "@/components/ui/Rating";
 import { Button } from "@/components/ui/Button";
@@ -15,15 +15,6 @@ import { ProductGallery } from "@/components/marketplace/ProductGallery";
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
-
-const accent: Record<ProductDTO["accentColor"], string> = {
-  purple: "from-neon-purple/40 via-neon-purple/10 to-transparent",
-  blue: "from-neon-blue/40 via-neon-blue/10 to-transparent",
-  cyan: "from-neon-cyan/40 via-neon-cyan/10 to-transparent",
-  emerald: "from-emerald-400/40 via-emerald-400/10 to-transparent",
-  amber: "from-amber-400/40 via-amber-400/10 to-transparent",
-  rose: "from-rose-400/40 via-rose-400/10 to-transparent"
-};
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
@@ -117,7 +108,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               <div
                 className={cn(
                   "absolute inset-0 bg-gradient-to-br",
-                  accent[product.accentColor]
+                  ACCENT_GRADIENT_STRONG[product.accentColor]
                 )}
               />
               {product.coverImage ? (

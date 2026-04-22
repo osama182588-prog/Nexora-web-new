@@ -6,22 +6,17 @@ import { Modal } from "@/components/ui/Modal";
 import { Rating } from "@/components/ui/Rating";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
-import { formatPrice, type ProductDTO } from "@/lib/marketplace";
+import {
+  ACCENT_GRADIENT_STRONG,
+  formatPrice,
+  type ProductDTO
+} from "@/lib/marketplace";
 import { cn } from "@/lib/utils";
 
 interface ProductPreviewModalProps {
   product: ProductDTO | null;
   onClose: () => void;
 }
-
-const accent: Record<ProductDTO["accentColor"], string> = {
-  purple: "from-neon-purple/40 via-neon-purple/10 to-transparent",
-  blue: "from-neon-blue/40 via-neon-blue/10 to-transparent",
-  cyan: "from-neon-cyan/40 via-neon-cyan/10 to-transparent",
-  emerald: "from-emerald-400/40 via-emerald-400/10 to-transparent",
-  amber: "from-amber-400/40 via-amber-400/10 to-transparent",
-  rose: "from-rose-400/40 via-rose-400/10 to-transparent"
-};
 
 export function ProductPreviewModal({ product, onClose }: ProductPreviewModalProps) {
   return (
@@ -36,7 +31,7 @@ export function ProductPreviewModal({ product, onClose }: ProductPreviewModalPro
           {/* Cover */}
           <div className="relative aspect-[16/10] overflow-hidden sm:col-span-3 sm:aspect-auto">
             <div
-              className={cn("absolute inset-0 bg-gradient-to-br", accent[product.accentColor])}
+              className={cn("absolute inset-0 bg-gradient-to-br", ACCENT_GRADIENT_STRONG[product.accentColor])}
             />
             {product.coverImage ? (
               <Image

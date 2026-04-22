@@ -3,7 +3,12 @@ import Image from "next/image";
 import { Icon } from "@/components/icons";
 import { Rating } from "@/components/ui/Rating";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { formatPrice, type ProductDTO } from "@/lib/marketplace";
+import {
+  ACCENT_GRADIENT,
+  ACCENT_HOVER_RING,
+  formatPrice,
+  type ProductDTO
+} from "@/lib/marketplace";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -12,24 +17,6 @@ interface ProductCardProps {
   className?: string;
   priority?: boolean;
 }
-
-const accent: Record<ProductDTO["accentColor"], string> = {
-  purple: "from-neon-purple/30 via-neon-purple/10 to-transparent",
-  blue: "from-neon-blue/30 via-neon-blue/10 to-transparent",
-  cyan: "from-neon-cyan/30 via-neon-cyan/10 to-transparent",
-  emerald: "from-emerald-400/30 via-emerald-400/10 to-transparent",
-  amber: "from-amber-400/30 via-amber-400/10 to-transparent",
-  rose: "from-rose-400/30 via-rose-400/10 to-transparent"
-};
-
-const accentRing: Record<ProductDTO["accentColor"], string> = {
-  purple: "group-hover:border-neon-purple/40 group-hover:shadow-[0_0_32px_rgba(165,99,255,0.25)]",
-  blue: "group-hover:border-neon-blue/40 group-hover:shadow-[0_0_32px_rgba(59,130,246,0.25)]",
-  cyan: "group-hover:border-neon-cyan/40 group-hover:shadow-[0_0_32px_rgba(34,211,238,0.25)]",
-  emerald: "group-hover:border-emerald-400/40 group-hover:shadow-[0_0_32px_rgba(52,211,153,0.25)]",
-  amber: "group-hover:border-amber-400/40 group-hover:shadow-[0_0_32px_rgba(251,191,36,0.25)]",
-  rose: "group-hover:border-rose-400/40 group-hover:shadow-[0_0_32px_rgba(244,63,94,0.25)]"
-};
 
 export function ProductCard({
   product,
@@ -43,7 +30,7 @@ export function ProductCard({
     <article
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-card/80 backdrop-blur transition-all duration-300 hover:-translate-y-1",
-        accentRing[product.accentColor],
+        ACCENT_HOVER_RING[product.accentColor],
         className
       )}
     >
@@ -56,7 +43,7 @@ export function ProductCard({
         <div
           className={cn(
             "absolute inset-0 bg-gradient-to-br",
-            accent[product.accentColor]
+            ACCENT_GRADIENT[product.accentColor]
           )}
         />
         {hasCover ? (

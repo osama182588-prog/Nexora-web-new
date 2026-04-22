@@ -26,10 +26,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   });
   if (!product) return apiError("Product not found.", 404, "not_found");
 
-  // Fire-and-forget view counter; failures here must not break the read.
-  ProductModel.updateOne({ _id: product._id }, { $inc: { views: 1 } }).catch(
-    () => undefined
-  );
+  // View counter is incremented by the SSR page renderer to avoid
+  // double-counting; keep this route as a pure read.
 
   const related = await ProductModel.find({
     ownerId: product.ownerId,
