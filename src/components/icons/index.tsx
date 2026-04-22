@@ -124,6 +124,86 @@ export const Icon = {
       <path d="M22 12h-6l-2 3h-4l-2-3H2" />
       <path d="M5 5h14l3 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6l3-7z" />
     </svg>
+  ),
+  Plus: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  ),
+  More: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  Edit: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  ),
+  Trash: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  ),
+  Filter: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" />
+    </svg>
+  ),
+  Pause: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+    </svg>
+  ),
+  Play: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M7 4l13 8-13 8V4z" />
+    </svg>
+  ),
+  Archive: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 7h18v4H3zM5 11v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9M10 15h4" />
+    </svg>
+  ),
+  Tag: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M20.59 13.41 12 22l-9-9V3h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  Folder: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+    </svg>
+  ),
+  Calendar: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 3v4M16 3v4" />
+    </svg>
+  ),
+  Check2: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  ),
+  Copy: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  ),
+  X: (p: IconProps) => (
+    <svg {...withSize(p)}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
   )
 };
 

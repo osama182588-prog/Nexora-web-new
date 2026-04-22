@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 export default async function DashboardLayout({
   children
@@ -20,7 +21,9 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 px-4 pb-10 pt-6 md:pr-3">{children}</main>
+        <main className="flex-1 px-4 pb-10 pt-6 md:pr-3">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ interface NavItem {
 
 const items: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: "Home" },
+  { label: "Projects", href: "/dashboard/projects", icon: "Folder" },
   { label: "Members", href: "/dashboard/members", icon: "Users" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "Chart" },
   { label: "Inbox", href: "/dashboard/inbox", icon: "Inbox" },
