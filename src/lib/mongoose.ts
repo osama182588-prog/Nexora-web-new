@@ -33,7 +33,14 @@ export async function connectToDatabase(): Promise<Mongoose> {
   if (!cache.promise) {
     cache.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
-      maxPoolSize: 10
+      // Pool sized for serverless burst: a small idle minimum keeps
+      // warm connections ready, the cap protects the cluster from a
+      // thundering herd. `serverSelectionTimeoutMS` makes the driver
+      // fail fast on a network blip instead of hanging the request.
+      maxPoolSize: 20,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 8_000,
+      socketTimeoutMS: 45_000
     });
   }
 

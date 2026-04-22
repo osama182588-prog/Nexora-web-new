@@ -23,14 +23,34 @@ import { cn } from "@/lib/utils";
 
 interface OverviewProps {
   greetingName: string;
+  /**
+   * Server-rendered first-paint data. When provided, the component
+   * skips its initial client fetch — the dashboard appears with real
+   * numbers on the first paint instead of a skeleton flash.
+   */
+  initialData?: {
+    stats: ProjectStats;
+    activity: ActivityDTO[];
+    recent: ProjectDTO[];
+  } | null;
 }
 
-export function DashboardOverview({ greetingName }: OverviewProps) {
-  const [stats, setStats] = useState<ProjectStats | null>(null);
-  const [activity, setActivity] = useState<ActivityDTO[] | null>(null);
-  const [recent, setRecent] = useState<ProjectDTO[] | null>(null);
+export function DashboardOverview({ greetingName, initialData }: OverviewProps) {
+  const [stats, setStats] = useState<ProjectStats | null>(
+    initialData?.stats ?? null
+  );
+  const [activity, setActivity] = useState<ActivityDTO[] | null>(
+    initialData?.activity ?? null
+  );
+  const [recent, setRecent] = useState<ProjectDTO[] | null>(
+    initialData?.recent ?? null
+  );
 
   useEffect(() => {
+    // First paint already populated by SSR — no need for a client
+    // round-trip on initial mount. Live SSE updates below keep
+    // everything fresh.
+    if (initialData) return;
     let cancelled = false;
     Promise.all([
       projectsApi.stats(),
@@ -56,7 +76,7 @@ export function DashboardOverview({ greetingName }: OverviewProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData]);
 
   // Realtime sync — every project event from the internal bus updates
   // the recent-projects card and prepends a synthesised activity entry

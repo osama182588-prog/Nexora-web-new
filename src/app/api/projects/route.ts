@@ -4,6 +4,7 @@ import { ProjectModel } from "@/models/Project";
 import { ActivityModel } from "@/models/Activity";
 import { apiError, requireUserId } from "@/lib/api";
 import { serializeProject, slugify } from "@/lib/projects";
+import { pickAvailableSlug, slugConflictRegex } from "@/lib/slug";
 import { publishProjectEvent } from "@/lib/services/projects.service";
 
 export const dynamic = "force-dynamic";
@@ -104,16 +105,20 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  // Build a unique slug per owner.
+  // Build a unique slug per owner. We fetch every existing slug that
+  // could collide with `<base>(-N)?` in a single query, then pick the
+  // first free suffix in memory — turning what used to be up to 50
+  // sequential `exists` round-trips into one O(log n) index scan.
   const baseSlug = slugify(name);
-  let slug = baseSlug;
-  let attempt = 1;
-  // eslint-disable-next-line no-await-in-loop
-  while (await ProjectModel.exists({ ownerId: auth.userId, slug })) {
-    attempt += 1;
-    slug = `${baseSlug}-${attempt}`;
-    if (attempt > 50) return apiError("Could not generate a unique slug.", 409, "conflict");
-  }
+  const existing = await ProjectModel.find(
+    { ownerId: auth.userId, slug: slugConflictRegex(baseSlug) },
+    { slug: 1, _id: 0 }
+  ).lean<{ slug: string }[]>();
+  const slug = pickAvailableSlug(
+    baseSlug,
+    existing.map((r) => r.slug)
+  );
+  if (!slug) return apiError("Could not generate a unique slug.", 409, "conflict");
 
   const project = await ProjectModel.create({
     ownerId: auth.userId,

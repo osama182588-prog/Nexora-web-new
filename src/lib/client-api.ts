@@ -32,13 +32,38 @@ async function handle<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * In-flight request deduplication.
+ *
+ * When multiple components mount in the same tick and each asks for
+ * `projectsApi.stats()` (or any other GET keyed by URL), we want them
+ * to share a single HTTP round-trip rather than triggering N parallel
+ * fetches that the browser has to multiplex over the same connection.
+ *
+ * The map only holds the *promise* — it's cleared the moment the
+ * request settles, so this is **not a cache**; subsequent calls always
+ * issue a fresh request. That gives us the perf win without any of
+ * the staleness footguns a real cache introduces.
+ */
+const inflight = new Map<string, Promise<unknown>>();
+function dedup<T>(key: string, exec: () => Promise<T>): Promise<T> {
+  const existing = inflight.get(key) as Promise<T> | undefined;
+  if (existing) return existing;
+  const p = exec().finally(() => {
+    if (inflight.get(key) === p) inflight.delete(key);
+  });
+  inflight.set(key, p);
+  return p;
+}
+
 export const projectsApi = {
   list(params: Record<string, string | undefined> = {}) {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return fetch(`/api/projects${suffix}`, { cache: "no-store" }).then(
-      handle<{ projects: ProjectDTO[] }>
+    const url = `/api/projects${suffix}`;
+    return dedup(`GET ${url}`, () =>
+      fetch(url, { cache: "no-store" }).then(handle<{ projects: ProjectDTO[] }>)
     );
   },
   create(body: {
@@ -78,18 +103,25 @@ export const projectsApi = {
     );
   },
   get(id: string) {
-    return fetch(`/api/projects/${id}`, { cache: "no-store" }).then(
-      handle<{ project: ProjectDTO; activities: ActivityDTO[] }>
+    const url = `/api/projects/${id}`;
+    return dedup(`GET ${url}`, () =>
+      fetch(url, { cache: "no-store" }).then(
+        handle<{ project: ProjectDTO; activities: ActivityDTO[] }>
+      )
     );
   },
   stats() {
-    return fetch(`/api/projects/stats`, { cache: "no-store" }).then(
-      handle<ProjectStats>
+    const url = `/api/projects/stats`;
+    return dedup(`GET ${url}`, () =>
+      fetch(url, { cache: "no-store" }).then(handle<ProjectStats>)
     );
   },
   activity(limit = 20) {
-    return fetch(`/api/projects/activity?limit=${limit}`, { cache: "no-store" }).then(
-      handle<{ activities: ActivityDTO[] }>
+    const url = `/api/projects/activity?limit=${limit}`;
+    return dedup(`GET ${url}`, () =>
+      fetch(url, { cache: "no-store" }).then(
+        handle<{ activities: ActivityDTO[] }>
+      )
     );
   }
 };

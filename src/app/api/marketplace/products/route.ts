@@ -11,6 +11,7 @@ import {
   sanitizeImageUrls,
   serializeProduct
 } from "@/lib/marketplace";
+import { pickAvailableSlug, slugConflictRegex } from "@/lib/slug";
 import { publishProductEvent } from "@/lib/services/marketplace.service";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -166,16 +167,18 @@ export async function POST(req: NextRequest) {
     if (owned) projectId = rawProjectId;
   }
 
-  // Generate a globally-unique slug.
+  // Generate a globally-unique slug — single regex query + in-memory
+  // pick instead of up to 50 sequential `exists` round-trips.
   const baseSlug = productSlugify(title);
-  let slug = baseSlug;
-  let attempt = 1;
-  // eslint-disable-next-line no-await-in-loop
-  while (await ProductModel.exists({ slug })) {
-    attempt += 1;
-    slug = `${baseSlug}-${attempt}`;
-    if (attempt > 50) return apiError("Could not generate a unique slug.", 409, "conflict");
-  }
+  const conflicts = await ProductModel.find(
+    { slug: slugConflictRegex(baseSlug) },
+    { slug: 1, _id: 0 }
+  ).lean<{ slug: string }[]>();
+  const slug = pickAvailableSlug(
+    baseSlug,
+    conflicts.map((r) => r.slug)
+  );
+  if (!slug) return apiError("Could not generate a unique slug.", 409, "conflict");
 
   const product = await ProductModel.create({
     ownerId: auth.userId,

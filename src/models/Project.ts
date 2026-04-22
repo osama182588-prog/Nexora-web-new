@@ -93,6 +93,10 @@ const ProjectSchema = new Schema(
 // One slug per owner. Different owners may reuse the same slug.
 ProjectSchema.index({ ownerId: 1, slug: 1 }, { unique: true });
 ProjectSchema.index({ ownerId: 1, updatedAt: -1 });
+// The default project list sort is `lastActivityAt: -1`. Without this
+// compound index the query falls back to an in-memory sort, which gets
+// expensive once a workspace has thousands of projects.
+ProjectSchema.index({ ownerId: 1, lastActivityAt: -1 });
 
 export type Project = InferSchemaType<typeof ProjectSchema> & {
   _id: mongoose.Types.ObjectId;
