@@ -27,6 +27,22 @@ export {
 } from "@/lib/services/projects.service";
 export { publishProductEvent } from "@/lib/services/marketplace.service";
 
+export {
+  PERMISSIONS,
+  ROLES,
+  ROLE_DEFAULTS,
+  ROLE_DESCRIPTIONS,
+  PERMISSION_LABELS,
+  evaluateAccess,
+  hasPermission,
+  normalizeRole,
+  requireProjectPermission,
+  serializeAccess,
+  type Permission,
+  type Role,
+  type ProjectAccess
+} from "@/core/permissions";
+
 export { ProjectModel, type Project } from "@/models/Project";
 export { ProductModel, type Product } from "@/models/Product";
 export { ActivityModel, type Activity } from "@/models/Activity";

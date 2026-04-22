@@ -249,6 +249,15 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={project.status} />
+            <Tooltip content="Project settings">
+              <Link
+                href={`/dashboard/projects/${project.id}/settings`}
+                aria-label="Project settings"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 text-slate-300 transition hover:border-neon-purple/40 hover:bg-neon-purple/10 hover:text-neon-purple"
+              >
+                <Icon.Settings size={16} />
+              </Link>
+            </Tooltip>
             <Tooltip content="Delete project">
               <button
                 type="button"

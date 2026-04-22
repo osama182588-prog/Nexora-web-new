@@ -1,5 +1,6 @@
 import type { Project } from "@/models/Project";
 import { slugify as slugifyShared } from "@/lib/slug";
+import { normalizeRole, type Role } from "@/core/permissions";
 
 /** Shape returned by the API — `ObjectId` and `Date` serialized to strings. */
 export interface ProjectDTO {
@@ -13,7 +14,13 @@ export interface ProjectDTO {
   progress: number;
   color: "purple" | "blue" | "cyan" | "emerald" | "amber" | "rose";
   tags: string[];
-  members: { userId: string; role: "owner" | "editor" | "viewer" }[];
+  members: {
+    userId: string;
+    role: Role;
+    permissions: string[];
+    addedBy: string | null;
+    invitedAt: string | null;
+  }[];
   marketplace: {
     visibility: "private" | "unlisted" | "public";
     listed: boolean;
@@ -38,10 +45,24 @@ export function serializeProject(p: Project): ProjectDTO {
     progress: p.progress ?? 0,
     color: p.color,
     tags: p.tags ?? [],
-    members: (p.members ?? []).map((m) => ({
-      userId: m.userId,
-      role: m.role as "owner" | "editor" | "viewer"
-    })),
+    members: (p.members ?? []).map((m) => {
+      const raw = m as unknown as {
+        userId: string;
+        role?: string;
+        permissions?: string[];
+        addedBy?: string | null;
+        invitedAt?: Date | string | null;
+      };
+      return {
+        userId: raw.userId,
+        role: normalizeRole(raw.role),
+        permissions: Array.isArray(raw.permissions) ? raw.permissions : [],
+        addedBy: raw.addedBy ?? null,
+        invitedAt: raw.invitedAt
+          ? new Date(raw.invitedAt as Date | string).toISOString()
+          : null
+      };
+    }),
     marketplace: {
       visibility: p.marketplace?.visibility ?? "private",
       listed: p.marketplace?.listed ?? false,

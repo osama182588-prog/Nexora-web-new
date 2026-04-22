@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
-import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongoose";
-import { ProjectModel } from "@/models/Project";
 import { ActivityModel } from "@/models/Activity";
 import { apiError, requireUserId } from "@/lib/api";
 import { serializeProject } from "@/lib/projects";
 import { publishProjectEvent } from "@/lib/services/projects.service";
+import {
+  hasPermission,
+  requireProjectPermission,
+  serializeAccess
+} from "@/core/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,31 +20,28 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-async function loadOwnedProject(userId: string, id: string) {
-  if (!mongoose.Types.ObjectId.isValid(id)) return null;
-  const project = await ProjectModel.findOne({ _id: id, ownerId: userId });
-  return project;
-}
-
 export async function GET(_req: NextRequest, ctx: Ctx) {
   const auth = await requireUserId();
   if (auth.response) return auth.response;
   const { id } = await ctx.params;
 
-  await connectToDatabase();
-  const project = await loadOwnedProject(auth.userId, id);
-  if (!project) return apiError("Project not found.", 404, "not_found");
+  const guard = await requireProjectPermission(auth.userId, id, "project.read");
+  if (guard.response) return guard.response;
+  const { project, access } = guard;
 
-  const activities = await ActivityModel.find({
-    ownerId: auth.userId,
-    projectId: String(project._id)
-  })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .lean();
+  const activities = hasPermission(access, "activity.read")
+    ? await ActivityModel.find({
+        ownerId: project.ownerId,
+        projectId: String(project._id)
+      })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean()
+    : [];
 
   return NextResponse.json({
     project: serializeProject(project),
+    access: serializeAccess(access),
     activities: activities.map((a) => ({
       id: String(a._id),
       type: a.type,
@@ -63,9 +63,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     return apiError("Invalid JSON body.");
   }
 
-  await connectToDatabase();
-  const project = await loadOwnedProject(auth.userId, id);
-  if (!project) return apiError("Project not found.", 404, "not_found");
+  const guard = await requireProjectPermission(
+    auth.userId,
+    id,
+    "project.update"
+  );
+  if (guard.response) return guard.response;
+  const { project } = guard;
 
   const previousStatus = project.status;
   const previousProgress = project.progress;
@@ -115,47 +119,50 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   project.lastActivityAt = new Date();
   await project.save();
 
-  // Activity entries for notable changes
+  // Activity entries for notable changes — recorded against the
+  // workspace owner so they appear in the owner's audit feed.
+  const ownerId = project.ownerId;
   if (project.status !== previousStatus) {
     await ActivityModel.create({
-      ownerId: auth.userId,
+      ownerId,
       projectId: String(project._id),
       type: "project.status_changed",
       message: `Status changed from ${previousStatus} to ${project.status} on "${project.name}"`,
-      metadata: { from: previousStatus, to: project.status }
+      metadata: { from: previousStatus, to: project.status, by: auth.userId }
     });
     publishProjectEvent({
       type: "project.status_changed",
-      ownerId: auth.userId,
+      ownerId,
       project,
-      extra: { from: previousStatus, to: project.status }
+      extra: { from: previousStatus, to: project.status, by: auth.userId }
     });
   } else if (project.progress !== previousProgress) {
     await ActivityModel.create({
-      ownerId: auth.userId,
+      ownerId,
       projectId: String(project._id),
       type: "project.progress_updated",
       message: `Progress updated to ${project.progress}% on "${project.name}"`,
-      metadata: { from: previousProgress, to: project.progress }
+      metadata: { from: previousProgress, to: project.progress, by: auth.userId }
     });
     publishProjectEvent({
       type: "project.progress_updated",
-      ownerId: auth.userId,
+      ownerId,
       project,
-      extra: { from: previousProgress, to: project.progress }
+      extra: { from: previousProgress, to: project.progress, by: auth.userId }
     });
   } else if (changes.length > 0) {
     await ActivityModel.create({
-      ownerId: auth.userId,
+      ownerId,
       projectId: String(project._id),
       type: "project.updated",
-      message: `Updated ${changes.join(", ")} on "${project.name}"`
+      message: `Updated ${changes.join(", ")} on "${project.name}"`,
+      metadata: { by: auth.userId }
     });
     publishProjectEvent({
       type: "project.updated",
-      ownerId: auth.userId,
+      ownerId,
       project,
-      extra: { changes }
+      extra: { changes, by: auth.userId }
     });
   }
 
@@ -167,26 +174,32 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   if (auth.response) return auth.response;
   const { id } = await ctx.params;
 
-  await connectToDatabase();
-  const project = await loadOwnedProject(auth.userId, id);
-  if (!project) return apiError("Project not found.", 404, "not_found");
+  const guard = await requireProjectPermission(
+    auth.userId,
+    id,
+    "project.delete"
+  );
+  if (guard.response) return guard.response;
+  const { project } = guard;
 
   const name = project.name;
   const projectId = String(project._id);
+  const ownerId = project.ownerId;
   await project.deleteOne();
 
   await ActivityModel.create({
-    ownerId: auth.userId,
+    ownerId,
     projectId: null,
     type: "project.deleted",
-    message: `Deleted project "${name}"`
+    message: `Deleted project "${name}"`,
+    metadata: { by: auth.userId }
   });
 
   publishProjectEvent({
     type: "project.deleted",
-    ownerId: auth.userId,
+    ownerId,
     project: serializeProject(project),
-    extra: { id: projectId, name }
+    extra: { id: projectId, name, by: auth.userId }
   });
 
   return NextResponse.json({ ok: true });

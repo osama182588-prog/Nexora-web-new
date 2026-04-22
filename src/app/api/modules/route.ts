@@ -11,14 +11,13 @@
  *          calls between subsystems — everything flows through the bus.
  */
 import { type NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongoose";
 import { apiError, requireUserId } from "@/lib/api";
-import { ProjectModel } from "@/models/Project";
 import { ProjectModuleModel } from "@/models/ProjectModule";
 import { bus } from "@/lib/system/bus";
 import { getModule, getRegistry } from "@/modules";
 import { isDiscordConfigured } from "@/integration/discord/client";
+import { requireProjectPermission, serializeAccess } from "@/core/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -61,25 +60,26 @@ export async function GET(req: NextRequest) {
   const auth = await requireUserId();
   if (auth.response) return auth.response;
   const projectId = req.nextUrl.searchParams.get("projectId");
-  if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-    return apiError("A valid projectId is required.");
-  }
+  if (!projectId) return apiError("A projectId is required.");
+
+  const guard = await requireProjectPermission(
+    auth.userId,
+    projectId,
+    "modules.read"
+  );
+  if (guard.response) return guard.response;
+  const { project, access } = guard;
 
   await connectToDatabase();
-  const project = await ProjectModel.findOne({
-    _id: projectId,
-    ownerId: auth.userId
-  }).lean();
-  if (!project) return apiError("Project not found.", 404, "not_found");
-
   const installs = await ProjectModuleModel.find({
     projectId,
-    ownerId: auth.userId
+    ownerId: project.ownerId
   }).lean();
 
   return NextResponse.json({
     registry: serializeRegistry(),
     installs: installs.map((i) => serializeInstall(i as unknown as InstallDoc)),
+    access: serializeAccess(access),
     runtime: {
       discordConfigured: isDiscordConfigured(),
       interactionsUrl: "/api/integration/discord/interactions"
@@ -104,22 +104,23 @@ export async function POST(req: NextRequest) {
   }
 
   const { projectId, moduleId } = body;
-  if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-    return apiError("A valid projectId is required.");
-  }
+  if (!projectId) return apiError("A projectId is required.");
   if (!moduleId || !getModule(moduleId)) {
     return apiError("Unknown moduleId.");
   }
 
+  const guard = await requireProjectPermission(
+    auth.userId,
+    projectId,
+    "modules.manage"
+  );
+  if (guard.response) return guard.response;
+  const { project } = guard;
+
   await connectToDatabase();
-  const project = await ProjectModel.findOne({
-    _id: projectId,
-    ownerId: auth.userId
-  }).lean();
-  if (!project) return apiError("Project not found.", 404, "not_found");
 
   const update: Record<string, unknown> = {
-    ownerId: auth.userId,
+    ownerId: project.ownerId,
     projectId,
     moduleId
   };
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
   }
 
   const install = await ProjectModuleModel.findOneAndUpdate(
-    { projectId, moduleId, ownerId: auth.userId },
+    { projectId, moduleId, ownerId: project.ownerId },
     { $set: update },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ).lean();
@@ -155,11 +156,12 @@ export async function POST(req: NextRequest) {
       : "module.configured";
   bus.publish({
     type: eventType,
-    actorId: auth.userId,
+    actorId: project.ownerId,
     resourceId: projectId,
     payload: {
       moduleId,
-      install: serializeInstall(install as unknown as InstallDoc)
+      install: serializeInstall(install as unknown as InstallDoc),
+      by: auth.userId
     }
   });
 

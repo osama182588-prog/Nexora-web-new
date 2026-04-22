@@ -42,9 +42,21 @@ const ProjectSchema = new Schema(
             userId: { type: String, required: true },
             role: {
               type: String,
-              enum: ["owner", "editor", "viewer"],
-              default: "editor"
-            }
+              // `editor` is kept as a backward-compatible alias for
+              // pre-Phase-7 documents — the permissions layer maps it
+              // to `manager` at read time.
+              enum: ["owner", "manager", "member", "viewer", "editor"],
+              default: "member"
+            },
+            /**
+             * Additive permission grants on top of the role defaults.
+             * Free-form so new modules can mint their own permission
+             * identifiers without a migration.
+             */
+            permissions: { type: [String], default: [] },
+            /** Audit metadata. */
+            addedBy: { type: String, default: null },
+            invitedAt: { type: Date, default: () => new Date() }
           },
           { _id: false }
         )
